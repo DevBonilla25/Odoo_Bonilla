@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        VISTAS DE SESIÓN PARA PUNTO DE INICIO
+        ======================================
+
+        Este archivo hereda las vistas de pos.session y las adapta para
+        el módulo Punto de Inicio.
+        -->
+
+        <!-- Vista de Formulario: Agregar campos de identificación -->
+        <record id="view_pos_session_form_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.session.form.punto_inicio</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_form"/>
+            <field name="arch" type="xml">
+                <!-- Banner informativo para sesiones de Punto de Inicio -->
+                <xpath expr="//h1[@class='oe_title']" position="before">
+                    <div class="alert alert-info" role="alert" invisible="x_is_punto_inicio == False">
+                        <strong><i class="fa fa-flag"/> Sesión de Punto de Inicio</strong>
+                        - Esta sesión fue creada desde el módulo Punto de Inicio.
+                    </div>
+                </xpath>
+
+                <!-- Agregar campos de identificación al grupo principal -->
+                <xpath expr="//sheet/group/field[@name='cash_register_balance_end_real']" position="after">
+                    <field name="x_is_punto_inicio" readonly="1" invisible="x_is_punto_inicio == False"/>
+                    <field name="x_source_module" readonly="1" invisible="x_is_punto_inicio == False"/>
+                    <field name="x_config_is_punto_inicio" readonly="1" string="Config es PI" invisible="x_is_punto_inicio == False"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Árbol/Lista: Agregar columnas -->
+        <record id="view_pos_session_tree_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.session.tree.punto_inicio</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//tree/field[@name='config_id']" position="after">
+                    <field name="x_source_module" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Búsqueda: Agregar filtros -->
+        <record id="view_pos_session_search_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.session.search.punto_inicio</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <separator/>
+                    <filter string="Sesiones Punto de Inicio" name="punto_inicio_sessions"
+                            domain="[('x_is_punto_inicio', '=', True)]"/>
+                    <filter string="Sesiones POS Normal" name="pos_sessions"
+                            domain="[('x_is_punto_inicio', '=', False)]"/>
+                    <separator/>
+                    <filter string="Configs de Punto de Inicio" name="punto_inicio_configs"
+                            domain="[('x_config_is_punto_inicio', '=', True)]"/>
+                </xpath>
+                <xpath expr="//search/group" position="inside">
+                    <filter string="Módulo de Origen" name="group_by_source"
+                            context="{'group_by': 'x_source_module'}"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Sesiones de Punto de Inicio -->
+        <record id="action_punto_inicio_session" model="ir.actions.act_window">
+            <field name="name">Sesiones Punto de Inicio</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">tree,form</field>
+            <!-- Dominio: Solo sesiones de Punto de Inicio -->
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <!-- Contexto: Marcar automáticamente como Punto de Inicio -->
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+                'search_default_punto_inicio_sessions': 1,
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Crear una nueva sesión de Punto de Inicio
+                </p>
+                <p>
+                    Las sesiones de Punto de Inicio funcionan exactamente igual que
+                    las sesiones del POS normal, pero se marcan para identificar su origen.
+                </p>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Todas las Sesiones (con filtro aplicado) -->
+        <record id="action_punto_inicio_session_all" model="ir.actions.act_window">
+            <field name="name">Todas las Sesiones PI</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">tree,form,kanban</field>
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <field name="context">{
+                'search_default_config': 1,
+            }</field>
+        </record>
+
+    </data>
+</odoo>
