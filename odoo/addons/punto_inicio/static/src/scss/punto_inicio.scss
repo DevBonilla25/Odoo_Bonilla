@@ -1,0 +1,100 @@
+/**
+ * Estilos de Punto de Inicio
+ * ===========================
+ *
+ * Estilos personalizados para el frontend de Punto de Inicio
+ */
+
+/* App principal */
+.punto-inicio-app {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Header */
+.punto-inicio-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+    h3 {
+        font-weight: 600;
+        margin: 0;
+    }
+
+    small {
+        opacity: 0.9;
+    }
+}
+
+/* Content area */
+.punto-inicio-content {
+    overflow-y: auto;
+    min-height: calc(100vh - 140px);
+}
+
+/* Footer */
+.punto-inicio-footer {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Cash opening popup */
+.cash-opening-popup {
+    .form-control-lg {
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .input-group-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .alert-info {
+        border-left: 4px solid #0dcaf0;
+    }
+}
+
+/* Cards */
+.card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+    .card-header {
+        border-bottom: 2px solid #f8f9fa;
+        font-weight: 600;
+    }
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .punto-inicio-header {
+        h3 {
+            font-size: 1.25rem;
+        }
+    }
+
+    .cash-opening-popup .form-control-lg {
+        font-size: 1.25rem;
+    }
+}

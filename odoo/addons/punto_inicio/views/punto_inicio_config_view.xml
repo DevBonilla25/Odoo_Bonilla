@@ -77,6 +77,36 @@
             </field>
         </record>
 
+        <!-- Vista Kanban heredada para Punto de Inicio -->
+        <record id="view_pos_config_kanban_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.config.kanban.punto_inicio</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_kanban"/>
+            <field name="arch" type="xml">
+                <!-- Agregar campo invisible para detectar Punto de Inicio -->
+                <xpath expr="//field[@name='number_of_rescue_session']" position="after">
+                    <field name="x_is_punto_inicio"/>
+                </xpath>
+
+                <!-- Ocultar botón original para Punto de Inicio -->
+                <xpath expr="//button[@name='open_ui']" position="attributes">
+                    <attribute name="invisible">x_is_punto_inicio</attribute>
+                </xpath>
+
+                <!-- Agregar botón personalizado para Punto de Inicio -->
+                <xpath expr="//button[@name='open_ui']" position="after">
+                    <button t-if="record.x_is_punto_inicio.raw_value &amp;&amp; record.current_session_state.raw_value != 'closing_control'"
+                            class="btn btn-primary"
+                            name="open_punto_inicio_ui"
+                            type="object">
+                        <t t-if="record.current_session_state.raw_value === 'opened'">Continuar Vendiendo</t>
+                        <t t-elif="!record.current_session_id.raw_value &amp;&amp; !record.pos_session_username.value">Nueva Sesión PI</t>
+                        <t t-elif="record.current_session_state.raw_value === 'opening_control'">Abrir Sesión PI</t>
+                    </button>
+                </xpath>
+            </field>
+        </record>
+
         <!-- Acción de Ventana para Configuraciones de Punto de Inicio -->
         <record id="action_punto_inicio_config" model="ir.actions.act_window">
             <field name="name">Configuraciones Punto de Inicio</field>

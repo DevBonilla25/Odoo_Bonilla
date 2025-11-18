@@ -84,3 +84,60 @@ class PosConfig(models.Model):
         # El parámetro copy=True en los campos ya maneja esto,
         # pero dejamos este método como referencia para futuras extensiones
         return super(PosConfig, self).copy(default=default)
+
+    def open_punto_inicio_ui(self):
+        """
+        Abre la interfaz de Punto de Inicio.
+
+        Este método reemplaza open_ui() del POS para configuraciones de Punto de Inicio.
+        Maneja tres escenarios:
+        1. Nueva Sesión: Crea sesión y redirige a popup de apertura de caja
+        2. Opening Control: Redirige a popup de apertura de caja
+        3. Sesión Abierta: Redirige al frontend de PI
+
+        Retorna:
+            dict: Acción de redirección
+        """
+        self.ensure_one()
+
+        # Verificar que sea una configuración de Punto de Inicio
+        if not self.x_is_punto_inicio:
+            from odoo.exceptions import UserError
+            raise UserError(_("Esta configuración no pertenece a Punto de Inicio"))
+
+        # Escenario 1: No hay sesión actual -> Crear nueva sesión
+        if not self.current_session_id:
+            # Crear una nueva sesión marcada como Punto de Inicio
+            session = self.env['pos.session'].create({
+                'user_id': self.env.uid,
+                'config_id': self.id,
+                'x_is_punto_inicio': True,
+                'x_source_module': 'punto_inicio',
+            })
+
+            # Redirigir a la página de apertura de caja
+            return {
+                'type': 'ir.actions.act_url',
+                'url': f'/punto_inicio/cash_opening?session_id={session.id}',
+                'target': 'self',
+            }
+
+        # Escenario 2: Sesión en estado opening_control -> Abrir caja
+        elif self.current_session_state == 'opening_control':
+            return {
+                'type': 'ir.actions.act_url',
+                'url': f'/punto_inicio/cash_opening?session_id={self.current_session_id.id}',
+                'target': 'self',
+            }
+
+        # Escenario 3: Sesión ya abierta -> Ir al frontend
+        elif self.current_session_state == 'opened':
+            return {
+                'type': 'ir.actions.act_url',
+                'url': f'/punto_inicio/ui?session_id={self.current_session_id.id}',
+                'target': 'self',
+            }
+
+        else:
+            from odoo.exceptions import UserError
+            raise UserError(_("Estado de sesión no válido: %s") % self.current_session_state)

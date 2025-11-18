@@ -9,7 +9,7 @@
         el módulo Punto de Inicio.
         -->
 
-        <!-- Vista de Formulario: Agregar campos de identificación -->
+        <!-- Vista de Formulario: Agregar campos de identificación y botón personalizado -->
         <record id="view_pos_session_form_punto_inicio" model="ir.ui.view">
             <field name="name">pos.session.form.punto_inicio</field>
             <field name="model">pos.session</field>
@@ -23,9 +23,18 @@
                     </div>
                 </xpath>
 
+                <!-- Agregar campos invisibles y botón de apertura para Punto de Inicio -->
+                <xpath expr="//header" position="inside">
+                    <field name="x_is_punto_inicio" invisible="1"/>
+                    <button name="action_open_punto_inicio_session"
+                            string="Abrir Sesión PI"
+                            type="object"
+                            class="btn-primary"
+                            invisible="x_is_punto_inicio == False or state not in ['new_session', 'opening_control']"/>
+                </xpath>
+
                 <!-- Agregar campos de identificación al grupo principal -->
                 <xpath expr="//sheet/group/field[@name='cash_register_balance_end_real']" position="after">
-                    <field name="x_is_punto_inicio" readonly="1" invisible="x_is_punto_inicio == False"/>
                     <field name="x_source_module" readonly="1" invisible="x_is_punto_inicio == False"/>
                     <field name="x_config_is_punto_inicio" readonly="1" string="Config es PI" invisible="x_is_punto_inicio == False"/>
                 </xpath>

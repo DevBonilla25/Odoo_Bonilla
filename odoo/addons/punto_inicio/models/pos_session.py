@@ -109,3 +109,99 @@ class PosSession(models.Model):
                 vals['x_source_module'] = 'pos'
 
         return super(PosSession, self).write(vals)
+
+    def action_open_punto_inicio_session(self):
+        """
+        Abre una sesión de Punto de Inicio mostrando el popup de apertura de caja.
+
+        Este método se llama desde la vista kanban cuando el usuario hace clic
+        en "Abrir Sesión" desde una configuración de Punto de Inicio.
+
+        Retorna:
+            dict: Acción que redirige a la página de apertura de caja
+        """
+        self.ensure_one()
+
+        # Verificar que la sesión sea de Punto de Inicio
+        if not self.x_is_punto_inicio:
+            from odoo.exceptions import UserError
+            raise UserError(_("Esta sesión no pertenece a Punto de Inicio"))
+
+        # Verificar que la sesión no esté ya abierta
+        if self.state != 'new_session':
+            from odoo.exceptions import UserError
+            raise UserError(_("Esta sesión ya está abierta o cerrada"))
+
+        # Redirigir a la página de apertura de caja
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/punto_inicio/cash_opening?session_id={self.id}',
+            'target': 'self',
+        }
+
+    def set_cashbox_opening(self, cashbox_start=0.0, notes=''):
+        """
+        Establece el monto inicial de caja y notas de apertura.
+
+        Este método se llama desde el frontend cuando el usuario ingresa
+        el monto inicial en el popup de apertura.
+
+        Parámetros:
+            cashbox_start (float): Monto inicial de efectivo
+            notes (str): Notas u observaciones de apertura
+        """
+        self.ensure_one()
+
+        # Actualizar el monto inicial
+        self.write({
+            'cash_register_balance_start': cashbox_start,
+        })
+
+        # Registrar las notas como mensaje en el chatter (opcional)
+        if notes:
+            self.message_post(
+                body=_("Apertura de caja: $%.2f<br/>Notas: %s") % (cashbox_start, notes),
+                subject=_("Apertura de Caja"),
+            )
+
+        return True
+
+    def set_cashbox_closing(self, cashbox_end=0.0, notes=''):
+        """
+        Establece el monto final de caja y notas de cierre.
+
+        Este método se llama desde el frontend cuando el usuario ingresa
+        el monto final en el popup de cierre.
+
+        Parámetros:
+            cashbox_end (float): Monto final de efectivo
+            notes (str): Notas u observaciones de cierre
+        """
+        self.ensure_one()
+
+        # Verificar que la sesión esté abierta
+        if self.state != 'opened':
+            from odoo.exceptions import UserError
+            raise UserError(_("Solo se pueden cerrar sesiones que estén abiertas"))
+
+        # Actualizar el monto final
+        self.write({
+            'cash_register_balance_end_real': cashbox_end,
+        })
+
+        # Registrar las notas como mensaje en el chatter
+        if notes:
+            self.message_post(
+                body=_("Cierre de caja: $%.2f<br/>Notas: %s") % (cashbox_end, notes),
+                subject=_("Cierre de Caja"),
+            )
+
+        # Calcular diferencia
+        cash_difference = cashbox_end - self.cash_register_balance_start
+        if cash_difference != 0:
+            self.message_post(
+                body=_("Diferencia de efectivo: $%.2f") % cash_difference,
+                subject=_("Diferencia de Caja"),
+            )
+
+        return True
