@@ -52,6 +52,23 @@ class PosConfig(models.Model):
         index=True,
     )
 
+    # Campo para asignar vehículo de flota a la configuración
+    x_vehicle_id = fields.Many2one(
+        'fleet.vehicle',
+        string='Vehículo Asignado',
+        help="Vehículo asignado a esta configuración de Punto de Inicio",
+        domain="[('active', '=', True)]",  # Solo vehículos activos
+        copy=False,  # No copiar al duplicar
+    )
+
+    # Campo relacionado para mostrar la placa del vehículo
+    x_vehicle_license_plate = fields.Char(
+        string='Placa',
+        related='x_vehicle_id.license_plate',
+        readonly=True,
+        store=False,
+    )
+
     @api.model
     def create(self, vals):
         """
@@ -99,6 +116,8 @@ class PosConfig(models.Model):
             dict: Acción de redirección
         """
         self.ensure_one()
+        import logging
+        _logger = logging.getLogger(__name__)
 
         # Verificar que sea una configuración de Punto de Inicio
         if not self.x_is_punto_inicio:
@@ -108,12 +127,22 @@ class PosConfig(models.Model):
         # Escenario 1: No hay sesión actual -> Crear nueva sesión
         if not self.current_session_id:
             # Crear una nueva sesión marcada como Punto de Inicio
+            # El estado por defecto es 'opening_control' según el modelo base
             session = self.env['pos.session'].create({
                 'user_id': self.env.uid,
                 'config_id': self.id,
                 'x_is_punto_inicio': True,
                 'x_source_module': 'punto_inicio',
+                'state': 'opening_control',  # Asegurar que el estado sea opening_control
             })
+
+            _logger.info(f"PUNTO_INICIO: Nueva sesión creada - ID: {session.id}, Nombre: {session.name}, Estado: {session.state}, Es PI: {session.x_is_punto_inicio}")
+
+            # Verificar que la sesión se creó correctamente
+            if not session.x_is_punto_inicio:
+                _logger.error(f"PUNTO_INICIO: ERROR - La sesión {session.id} no se marcó como Punto de Inicio")
+                from odoo.exceptions import UserError
+                raise UserError(_("Error al crear la sesión. La sesión no se marcó correctamente como Punto de Inicio."))
 
             # Redirigir a la página de apertura de caja
             return {
@@ -122,8 +151,9 @@ class PosConfig(models.Model):
                 'target': 'self',
             }
 
-        # Escenario 2: Sesión en estado opening_control -> Abrir caja
-        elif self.current_session_state == 'opening_control':
+        # Escenario 2: Sesión en estado opening_control o new_session -> Abrir caja
+        elif self.current_session_state in ['opening_control', 'new_session']:
+            _logger.info(f"PUNTO_INICIO: Sesión existente en estado {self.current_session_state}, redirigiendo a apertura")
             return {
                 'type': 'ir.actions.act_url',
                 'url': f'/punto_inicio/cash_opening?session_id={self.current_session_id.id}',
@@ -132,6 +162,7 @@ class PosConfig(models.Model):
 
         # Escenario 3: Sesión ya abierta -> Ir al frontend
         elif self.current_session_state == 'opened':
+            _logger.info(f"PUNTO_INICIO: Sesión ya abierta, redirigiendo al frontend")
             return {
                 'type': 'ir.actions.act_url',
                 'url': f'/punto_inicio/ui?session_id={self.current_session_id.id}',
@@ -139,5 +170,6 @@ class PosConfig(models.Model):
             }
 
         else:
+            _logger.error(f"PUNTO_INICIO: Estado de sesión no válido: {self.current_session_state}")
             from odoo.exceptions import UserError
             raise UserError(_("Estado de sesión no válido: %s") % self.current_session_state)

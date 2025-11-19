@@ -38,11 +38,15 @@ Uso:
     'website': 'https://www.bonilla.com',
     'depends': [
         'point_of_sale',  # Dependencia crítica - reutilizamos sus modelos
+        'fleet',          # Para integración con gestión de vehículos
     ],
     'data': [
         # Seguridad - debe cargarse primero
         'security/punto_inicio_security.xml',
         'security/ir.model.access.csv',
+
+        # Datos - secuencias y configuraciones
+        'data/punto_inicio_data.xml',
 
         # Vistas - heredan y modifican las vistas del POS
         'views/punto_inicio_config_view.xml',

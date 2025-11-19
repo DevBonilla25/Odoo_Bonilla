@@ -22,6 +22,19 @@
             <field name="arch" type="xml">
                 <!-- Agregamos un grupo al final del sheet con los campos de Punto de Inicio -->
                 <xpath expr="//sheet/div[@class='row mt16 o_settings_container']" position="after">
+                    <group string="Configuración de Vehículo" name="punto_inicio_vehicle" invisible="x_is_punto_inicio == False">
+                        <group>
+                            <field name="x_vehicle_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="x_vehicle_license_plate" readonly="1" invisible="not x_vehicle_id"/>
+                        </group>
+                        <group>
+                            <p colspan="2" class="text-muted">
+                                Seleccione el vehículo que será asignado por defecto
+                                a las sesiones de esta configuración. Los conductores
+                                podrán cambiarlo al iniciar sesión si es necesario.
+                            </p>
+                        </group>
+                    </group>
                     <group string="Identificación: Punto de Inicio" name="punto_inicio_info">
                         <group>
                             <field name="x_is_punto_inicio" readonly="1"/>
