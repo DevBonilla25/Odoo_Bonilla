@@ -9,7 +9,7 @@
         desde el controlador HTTP.
         -->
 
-        <!-- Página de apertura de caja -->
+        <!-- Página de Apertura Vehicular -->
         <template id="cash_opening_page" name="Cash Opening Page">
             <t t-call="web.layout">
                 <t t-set="head">
@@ -21,7 +21,7 @@
                         <div class="card-header bg-primary text-white">
                             <h4 class="mb-0">
                                 <i class="fa fa-car me-2"/>
-                                Apertura de Caja - Operaciones Logísticas
+                                Apertura Vehicular - Operaciones Logísticas
                             </h4>
                         </div>
                         <div class="card-body p-4">
@@ -31,38 +31,32 @@
                             </div>
 
                             <p class="text-muted mb-4">
-                                Para iniciar la sesión, ingrese el vehículo y el kilometraje registrado en el odómetro.
+                                Para iniciar la sesión, verifique el vehículo asignado e ingrese el kilometraje registrado en el odómetro.
                             </p>
 
                             <form id="vehicleOpeningForm" method="post" onsubmit="return false;">
-                                <!-- Información del vehículo precargado -->
+                                <!-- Información del vehículo asignado -->
                                 <t t-if="vehicle">
-                                    <div class="alert alert-success mb-3">
-                                        <strong><i class="fa fa-car me-2"/>Vehículo Asignado:</strong><br/>
-                                        <span class="fs-5"><t t-esc="vehicle.name"/></span><br/>
-                                        <small class="text-muted">Placa: <strong><t t-esc="vehicle.license_plate or 'No especificada'"/></strong></small>
+                                    <div class="alert alert-success mb-4">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fa fa-car fa-3x me-3 text-success"/>
+                                            <div>
+                                                <strong class="fs-6">Vehículo Asignado</strong><br/>
+                                                <span class="fs-4 fw-bold"><t t-esc="vehicle.name"/></span><br/>
+                                                <small class="text-muted">Placa: <strong class="text-dark"><t t-esc="vehicle.license_plate or 'No especificada'"/></strong></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Campo oculto con el ID del vehículo -->
+                                    <input type="hidden" id="vehicle_id" name="vehicle_id" t-att-value="vehicle.id"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="alert alert-warning mb-4">
+                                        <i class="fa fa-exclamation-triangle me-2"/>
+                                        <strong>Atención:</strong> No hay vehículo asignado a esta configuración.
+                                        Por favor, asigne un vehículo antes de continuar.
                                     </div>
                                 </t>
-
-                                <div class="mb-3">
-                                    <label for="vehicle_id" class="form-label">
-                                        <strong>Vehículo <span class="text-danger">*</span></strong>
-                                    </label>
-                                    <select
-                                        class="form-select form-select-lg"
-                                        id="vehicle_id"
-                                        name="vehicle_id"
-                                        required="required"
-                                    >
-                                        <option value="">-- Seleccione un vehículo --</option>
-                                        <t t-foreach="vehicles" t-as="v">
-                                            <option t-att-value="v.id" t-att-selected="'selected' if vehicle and v.id == vehicle.id else None">
-                                                <t t-esc="v.name"/> (<t t-esc="v.license_plate or 'Sin placa'"/>)
-                                            </option>
-                                        </t>
-                                    </select>
-                                    <small class="text-muted">Puede cambiar el vehículo si es necesario</small>
-                                </div>
 
                                 <div class="mb-3">
                                     <label for="odometer_start" class="form-label">
@@ -105,6 +99,7 @@
                                         type="button"
                                         class="btn btn-primary btn-lg"
                                         onclick="openSession()"
+                                        t-att-disabled="'disabled' if not vehicle else None"
                                     >
                                         <i class="fa fa-play me-2"/>
                                         Iniciar Sesión
