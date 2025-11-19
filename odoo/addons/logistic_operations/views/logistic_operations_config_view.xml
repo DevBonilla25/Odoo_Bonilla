@@ -112,7 +112,7 @@
                             class="btn btn-primary"
                             name="open_logistic_operations_ui"
                             type="object">
-                        <t t-if="record.current_session_state.raw_value === 'opened'">Continuar Vendiendo</t>
+                        <t t-if="record.current_session_state.raw_value === 'opened'">Continuar Operación</t>
                         <t t-elif="!record.current_session_id.raw_value &amp;&amp; !record.pos_session_username.value">Nueva Sesión LSO</t>
                         <t t-elif="record.current_session_state.raw_value === 'opening_control'">Abrir Sesión LSO</t>
                     </button>
