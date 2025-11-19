@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--
+        GRUPOS DE SEGURIDAD PARA Operaciones Logísticas
+        =========================================
+
+        Este archivo define los grupos de seguridad específicos para el módulo
+        Operaciones Logísticas. Reutilizamos la estructura de grupos del POS pero
+        creamos grupos propios para permitir permisos independientes.
+
+        Casos de uso:
+        - Usuarios que solo pueden acceder a Operaciones Logísticas (no al POS normal)
+        - Managers específicos de Operaciones Logísticas
+        - Separación de responsabilidades entre módulos
+        -->
+
+        <!-- Categoría de Aplicación -->
+        <record id="module_category_logistic_operations" model="ir.module.category">
+            <field name="name">Operaciones Logísticas</field>
+            <field name="description">Gestión de permisos para el módulo Operaciones Logísticas</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <!-- Grupo: Usuario de Operaciones Logísticas -->
+        <!-- Similar a group_pos_user del POS -->
+        <record id="group_logistic_operations_user" model="res.groups">
+            <field name="name">Usuario Operaciones Logísticas</field>
+            <field name="category_id" ref="module_category_logistic_operations"/>
+            <field name="comment">
+                Usuario básico de Operaciones Logísticas.
+                Puede:
+                - Abrir/cerrar sesiones de Operaciones Logísticas
+                - Crear órdenes en Operaciones Logísticas
+                - Ver sus propias sesiones y órdenes
+            </field>
+            <!-- Heredamos del grupo de usuario de POS para reutilizar permisos base -->
+            <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        </record>
+
+        <!-- Grupo: Manager de Operaciones Logísticas -->
+        <!-- Similar a group_pos_manager del POS -->
+        <record id="group_logistic_operations_manager" model="res.groups">
+            <field name="name">Manager Operaciones Logísticas</field>
+            <field name="category_id" ref="module_category_logistic_operations"/>
+            <field name="comment">
+                Manager de Operaciones Logísticas.
+                Puede:
+                - Todo lo que puede un usuario
+                - Configurar puntos de venta de Operaciones Logísticas
+                - Ver todas las sesiones y órdenes de Operaciones Logísticas
+                - Acceso a reportes y análisis
+                - Cerrar sesiones de otros usuarios
+            </field>
+            <!-- Implica los permisos de usuario + manager de POS -->
+            <field name="implied_ids" eval="[
+                (4, ref('group_logistic_operations_user')),
+                (4, ref('point_of_sale.group_pos_manager'))
+            ]"/>
+        </record>
+
+        <!--
+        REGLAS DE REGISTRO (Record Rules) - SEPARACIÓN TOTAL
+        =====================================================
+
+        NUEVA ESTRATEGIA - SEPARACIÓN COMPLETA:
+
+        Las reglas de seguridad están DESACTIVADAS para permitir separación total
+        mediante dominios en las acciones de ventana.
+
+        Esto significa:
+        - Cada menú (Operaciones Logísticas vs Point of Sale) filtra sus propios datos
+        - Los usuarios pueden tener ambos grupos sin ver datos mezclados
+        - La separación es por CONTEXTO DE USO, no por PERMISOS DE USUARIO
+
+        IMPORTANTE:
+        - Los dominios en las acciones garantizan la separación
+        - No se usan record rules para evitar conflictos con usuarios multi-grupo
+        - La independencia es TOTAL y FUNCIONAL
+        -->
+
+        <!-- ============================================ -->
+        <!-- REGLAS DESACTIVADAS - SEPARACIÓN POR DOMINIO -->
+        <!-- ============================================ -->
+
+        <!--
+        TODAS LAS REGLAS DE SEGURIDAD HAN SIDO ELIMINADAS
+
+        La separación ahora se logra mediante:
+        1. Dominios en las acciones de ventana
+        2. Contextos en los menús
+        3. Filtros automáticos en las vistas
+
+        Esto permite independencia TOTAL entre módulos.
+
+        Las reglas antiguas han sido eliminadas del archivo para evitar
+        conflictos y simplificar el mantenimiento.
+        -->
+
+        <!--
+        NO HAY REGLAS DE SEGURIDAD ACTIVAS
+
+        La separación entre Operaciones Logísticas y Point of Sale se logra mediante:
+        - Dominios en las acciones de ventana
+        - Contextos en los menús
+        - Filtros en las vistas
+
+        Esto permite independencia total sin conflictos de permisos.
+        -->
+
+    </data>
+</odoo>

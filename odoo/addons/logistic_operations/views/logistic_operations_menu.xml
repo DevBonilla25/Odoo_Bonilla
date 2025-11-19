@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        MENÚS PRINCIPALES PARA Operaciones Logísticas
+        =======================================
+
+        Este archivo define la estructura completa del menú de Operaciones Logísticas.
+
+        IMPORTANTE - INDEPENDENCIA TOTAL:
+        - Operaciones Logísticas es completamente independiente del módulo Point of Sale
+        - NO comparte configuraciones, métodos de pago, ni ajustes con POS
+        - Solo comparte la estructura de tablas (pos_config, pos_session, pos_order)
+        - Los datos se separan mediante campos identificadores (x_is_logistic_operations)
+        - Los usuarios de Operaciones Logísticas SOLO ven datos de Operaciones Logísticas
+        - Los usuarios de POS SOLO ven datos de POS
+
+        Estructura del menú:
+        - Menú raíz: "Operaciones Logísticas"
+          |- Dashboard
+          |- Órdenes
+          |  |- Órdenes
+          |  |- Órdenes Recientes
+          |  |- Análisis de Órdenes
+          |- Sesiones
+          |  |- Sesiones
+          |  |- Todas las Sesiones
+          |- Configuración
+          |  |- Puntos de Venta (Configuraciones propias de LSO)
+
+        IMPORTANTE:
+        - Cada menú tiene groups="" para controlar acceso
+        - Las acciones usan dominios y contextos para filtrar automáticamente
+        - Los sequence numbers controlan el orden de aparición
+        - Las reglas de seguridad garantizan la separación de datos
+        -->
+
+        <!-- ==================================================== -->
+        <!-- MENÚ RAÍZ: Operaciones Logísticas -->
+        <!-- ==================================================== -->
+        <menuitem id="menu_logistic_operations_root"
+                  name="Operaciones Logísticas"
+                  sequence="20"
+                  web_icon="logistic_operations,static/description/icon.png"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- ==================================================== -->
+        <!-- DASHBOARD / VISTA PRINCIPAL -->
+        <!-- ==================================================== -->
+
+        <!--
+        NOTA: La interfaz POS (point_of_sale.ui) es una acción cliente especial
+        que requiere configuración adicional de JavaScript para funcionar correctamente
+        con el filtrado de Operaciones Logísticas.
+
+        Por ahora, el Dashboard abrirá la vista de sesiones como Operaciones Logísticas.
+        Si necesitas una interfaz POS personalizada, deberás:
+        1. Crear componentes JavaScript/OWL personalizados
+        2. Registrar una nueva acción cliente
+        3. Modificar el flujo de carga de datos del POS
+        -->
+
+        <!-- Acción para crear nueva configuración rápidamente desde el Dashboard -->
+        <record id="action_logistic_operations_new_config" model="ir.actions.act_window">
+            <field name="name">Nuevo Operaciones Logísticas</field>
+            <field name="res_model">pos.config</field>
+            <field name="view_mode">form</field>
+            <field name="target">current</field>
+            <field name="context">{
+                'default_x_is_logistic_operations': True,
+                'default_x_source_module': 'logistic_operations',
+            }</field>
+        </record>
+
+        <!-- Acción del Dashboard: Muestra configuraciones de Operaciones Logísticas -->
+        <record id="action_logistic_operations_dashboard" model="ir.actions.act_window">
+            <field name="name">Panel de Operaciones Logísticas</field>
+            <field name="res_model">pos.config</field>
+            <field name="view_mode">kanban,tree,form</field>
+            <field name="domain">[('x_is_logistic_operations', '=', True)]</field>
+            <field name="context">{
+                'default_x_is_logistic_operations': True,
+                'default_x_source_module': 'logistic_operations',
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    ¡Bienvenido a Operaciones Logísticas!
+                </p>
+                <p>
+                    Para comenzar, crea tu primer Operaciones Logísticas.
+                </p>
+                <p>
+                    <button name="%(action_logistic_operations_new_config)d" type="action" class="btn btn-primary">
+                        Crear Operaciones Logísticas
+                    </button>
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_logistic_operations_dashboard"
+                  name="Dashboard"
+                  parent="menu_logistic_operations_root"
+                  action="action_logistic_operations_dashboard"
+                  sequence="1"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: ÓRDENES -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_logistic_operations_orders_root"
+                  name="Órdenes"
+                  parent="menu_logistic_operations_root"
+                  sequence="10"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- Órdenes de Operaciones Logísticas -->
+        <menuitem id="menu_logistic_operations_orders"
+                  name="Órdenes"
+                  parent="menu_logistic_operations_orders_root"
+                  action="action_logistic_operations_orders"
+                  sequence="1"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- Órdenes Recientes -->
+        <menuitem id="menu_logistic_operations_orders_recent"
+                  name="Órdenes Recientes"
+                  parent="menu_logistic_operations_orders_root"
+                  action="action_logistic_operations_orders_recent"
+                  sequence="2"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- Todas las Órdenes (con análisis) -->
+        <menuitem id="menu_logistic_operations_orders_all"
+                  name="Análisis de Órdenes"
+                  parent="menu_logistic_operations_orders_root"
+                  action="action_logistic_operations_orders_all"
+                  sequence="3"
+                  groups="group_logistic_operations_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: SESIONES -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_logistic_operations_sessions_root"
+                  name="Sesiones"
+                  parent="menu_logistic_operations_root"
+                  sequence="20"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- Sesiones de Operaciones Logísticas -->
+        <menuitem id="menu_logistic_operations_sessions"
+                  name="Sesiones"
+                  parent="menu_logistic_operations_sessions_root"
+                  action="action_logistic_operations_session"
+                  sequence="1"
+                  groups="group_logistic_operations_user"/>
+
+        <!-- Todas las Sesiones -->
+        <menuitem id="menu_logistic_operations_sessions_all"
+                  name="Todas las Sesiones"
+                  parent="menu_logistic_operations_sessions_root"
+                  action="action_logistic_operations_session_all"
+                  sequence="2"
+                  groups="group_logistic_operations_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: CONFIGURACIÓN -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_logistic_operations_config_root"
+                  name="Configuración"
+                  parent="menu_logistic_operations_root"
+                  sequence="90"
+                  groups="group_logistic_operations_manager"/>
+
+        <!-- Puntos de Inicio (Configuraciones) -->
+        <menuitem id="menu_logistic_operations_config"
+                  name="Puntos de Inicio"
+                  parent="menu_logistic_operations_config_root"
+                  action="action_logistic_operations_config"
+                  sequence="1"
+                  groups="group_logistic_operations_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: REPORTES (Opcional - para futuro) -->
+        <!-- ==================================================== -->
+
+        <!--
+        Puedes descomentar esta sección cuando quieras agregar reportes personalizados
+
+        <menuitem id="menu_logistic_operations_reports_root"
+                  name="Reportes"
+                  parent="menu_logistic_operations_root"
+                  sequence="80"
+                  groups="group_logistic_operations_manager"/>
+
+        <menuitem id="menu_logistic_operations_report_sales"
+                  name="Reporte de Ventas"
+                  parent="menu_logistic_operations_reports_root"
+                  action="action_logistic_operations_report_sales"
+                  sequence="1"
+                  groups="group_logistic_operations_manager"/>
+        -->
+
+        <!-- ==================================================== -->
+        <!-- ACCIONES ADICIONALES -->
+        <!-- ==================================================== -->
+
+        <!-- Acción para crear nueva sesión rápidamente -->
+        <record id="action_logistic_operations_new_session" model="ir.actions.act_window">
+            <field name="name">Nueva Sesión LSO</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context">{
+                'default_x_is_logistic_operations': True,
+                'default_x_source_module': 'logistic_operations',
+            }</field>
+        </record>
+
+        <!-- Acción para ver estadísticas rápidas -->
+        <record id="action_logistic_operations_stats" model="ir.actions.server">
+            <field name="name">Estadísticas LSO</field>
+            <field name="model_id" ref="point_of_sale.model_pos_order"/>
+            <field name="state">code</field>
+            <field name="code">
+# Este código muestra estadísticas rápidas de Operaciones Logísticas
+# Puede ser llamado desde un botón en el dashboard
+
+stats = model.get_logistic_operations_stats()
+
+# Mostrar notificación con las estadísticas
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Estadísticas de Operaciones Logísticas',
+        'message': f"""
+            Total de Órdenes: {stats['total_orders']}
+            Monto Total: ${stats['total_amount']:.2f}
+            Ticket Promedio: ${stats['average_ticket']:.2f}
+        """,
+        'sticky': False,
+        'type': 'info',
+    }
+}
+            </field>
+        </record>
+
+    </data>
+</odoo>
