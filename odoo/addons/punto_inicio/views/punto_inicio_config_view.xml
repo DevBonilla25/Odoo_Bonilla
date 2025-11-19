@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        VISTAS DE CONFIGURACIÓN PARA PUNTO DE INICIO
+        =============================================
+
+        Este archivo hereda las vistas de pos.config del POS y las adapta
+        para mostrar los campos adicionales de Punto de Inicio.
+
+        Estrategia:
+        - Heredamos las vistas existentes usando inherit_id
+        - Agregamos los campos identificadores
+        - NO duplicamos toda la vista, solo extendemos
+        -->
+
+        <!-- Vista de Formulario: Agregar campos de identificación -->
+        <record id="view_pos_config_form_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.config.form.punto_inicio</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+            <field name="arch" type="xml">
+                <!-- Agregamos un grupo al final del sheet con los campos de Punto de Inicio -->
+                <xpath expr="//sheet/div[@class='row mt16 o_settings_container']" position="after">
+                    <group string="Configuración de Vehículo" name="punto_inicio_vehicle" invisible="x_is_punto_inicio == False">
+                        <group>
+                            <field name="x_vehicle_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="x_vehicle_license_plate" readonly="1" invisible="not x_vehicle_id"/>
+                        </group>
+                        <group>
+                            <p colspan="2" class="text-muted">
+                                Seleccione el vehículo que será asignado por defecto
+                                a las sesiones de esta configuración. Los conductores
+                                podrán cambiarlo al iniciar sesión si es necesario.
+                            </p>
+                        </group>
+                    </group>
+                    <group string="Identificación: Punto de Inicio" name="punto_inicio_info">
+                        <group>
+                            <field name="x_is_punto_inicio" readonly="1"/>
+                            <field name="x_source_module" readonly="1"/>
+                        </group>
+                        <group>
+                            <p colspan="2" class="text-muted">
+                                Estos campos identifican si esta configuración pertenece
+                                al módulo "Punto de Inicio" o al "Point of Sale" normal.
+                                Las configuraciones creadas desde el menú de Punto de Inicio
+                                se marcan automáticamente.
+                            </p>
+                        </group>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Árbol/Lista: Agregar columnas de identificación -->
+        <record id="view_pos_config_tree_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.config.tree.punto_inicio</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_tree"/>
+            <field name="arch" type="xml">
+                <!-- Agregamos columnas para mostrar el origen -->
+                <xpath expr="//tree/field[@name='name']" position="after">
+                    <field name="x_source_module" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Búsqueda: Agregar filtros para Punto de Inicio -->
+        <record id="view_pos_config_search_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.config.search.punto_inicio</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_search"/>
+            <field name="arch" type="xml">
+                <!-- Agregamos filtros para separar por módulo de origen -->
+                <xpath expr="//search/filter[@name='inactive']" position="after">
+                    <separator/>
+                    <filter string="Punto de Inicio" name="punto_inicio_only"
+                            domain="[('x_is_punto_inicio', '=', True)]"
+                            help="Mostrar solo configuraciones de Punto de Inicio"/>
+                    <filter string="POS Normal" name="pos_only"
+                            domain="[('x_is_punto_inicio', '=', False)]"
+                            help="Mostrar solo configuraciones del POS normal"/>
+                    <separator/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Módulo de Origen" name="group_by_source_module"
+                                context="{'group_by': 'x_source_module'}"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista Kanban heredada para Punto de Inicio -->
+        <record id="view_pos_config_kanban_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.config.kanban.punto_inicio</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_kanban"/>
+            <field name="arch" type="xml">
+                <!-- Agregar campo invisible para detectar Punto de Inicio -->
+                <xpath expr="//field[@name='number_of_rescue_session']" position="after">
+                    <field name="x_is_punto_inicio"/>
+                </xpath>
+
+                <!-- Ocultar botón original para Punto de Inicio -->
+                <xpath expr="//button[@name='open_ui']" position="attributes">
+                    <attribute name="invisible">x_is_punto_inicio</attribute>
+                </xpath>
+
+                <!-- Agregar botón personalizado para Punto de Inicio -->
+                <xpath expr="//button[@name='open_ui']" position="after">
+                    <button t-if="record.x_is_punto_inicio.raw_value &amp;&amp; record.current_session_state.raw_value != 'closing_control'"
+                            class="btn btn-primary"
+                            name="open_punto_inicio_ui"
+                            type="object">
+                        <t t-if="record.current_session_state.raw_value === 'opened'">Continuar Vendiendo</t>
+                        <t t-elif="!record.current_session_id.raw_value &amp;&amp; !record.pos_session_username.value">Nueva Sesión PI</t>
+                        <t t-elif="record.current_session_state.raw_value === 'opening_control'">Abrir Sesión PI</t>
+                    </button>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Configuraciones de Punto de Inicio -->
+        <record id="action_punto_inicio_config" model="ir.actions.act_window">
+            <field name="name">Configuraciones Punto de Inicio</field>
+            <field name="res_model">pos.config</field>
+            <field name="view_mode">tree,form</field>
+            <!-- Dominio: Solo mostrar configuraciones de Punto de Inicio -->
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <!-- Contexto: Marcar automáticamente nuevas configs como Punto de Inicio -->
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Crear una nueva configuración de Punto de Inicio
+                </p>
+                <p>
+                    Las configuraciones de Punto de Inicio funcionan igual que las del POS,
+                    pero se marcan automáticamente para identificar su origen.
+                    <br/><br/>
+                    Los registros creados desde estas configuraciones (sesiones, órdenes)
+                    heredarán el marcado de Punto de Inicio.
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>

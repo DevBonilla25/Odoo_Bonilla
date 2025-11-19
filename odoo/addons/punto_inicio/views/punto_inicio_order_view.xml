@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        VISTAS DE ÓRDENES PARA PUNTO DE INICIO
+        =======================================
+
+        Este archivo hereda las vistas de pos.order y las adapta para
+        el módulo Punto de Inicio.
+
+        Las órdenes son el elemento central del módulo, por lo que estas
+        vistas son especialmente importantes.
+        -->
+
+        <!-- Vista de Formulario: Agregar campos de identificación -->
+        <record id="view_pos_order_form_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.order.form.punto_inicio</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+                <!-- Banner visual para órdenes de Punto de Inicio -->
+                <xpath expr="//sheet" position="before">
+                    <div class="alert alert-info text-center" role="alert"
+                         invisible="x_is_punto_inicio == False"
+                         style="margin-bottom: 0px;">
+                        <strong>
+                            <i class="fa fa-flag"/> Orden de Punto de Inicio
+                        </strong>
+                        - Esta orden fue creada desde el módulo Punto de Inicio
+                    </div>
+                </xpath>
+
+                <!-- Agregar campos informativos después del grupo de campos de orden -->
+                <xpath expr="//group[@name='order_fields']" position="after">
+                    <group string="Información del Módulo" name="punto_inicio_info" col="4"
+                           invisible="x_is_punto_inicio == False">
+                        <field name="x_is_punto_inicio" readonly="1"/>
+                        <field name="x_source_module" readonly="1"/>
+                        <field name="x_session_is_punto_inicio" readonly="1" string="Sesión es PI"/>
+                        <field name="x_config_is_punto_inicio" readonly="1" string="Config es PI"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Árbol/Lista: Agregar columnas identificadoras -->
+        <record id="view_pos_order_tree_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.order.tree.punto_inicio</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+            <field name="arch" type="xml">
+                <!-- Agregar campos necesarios para decoraciones (invisible pero disponibles) -->
+                <xpath expr="//tree/field[@name='currency_id']" position="after">
+                    <field name="x_is_punto_inicio" column_invisible="True"/>
+                </xpath>
+
+                <!-- Agregar columna de módulo de origen con badge colorido -->
+                <xpath expr="//tree/field[@name='partner_id']" position="after">
+                    <field name="x_source_module" optional="show"/>
+                </xpath>
+
+                <!-- Decoraciones visuales para distinguir órdenes de PI -->
+                <xpath expr="//tree" position="attributes">
+                    <attribute name="decoration-info">x_is_punto_inicio == True</attribute>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Búsqueda: Filtros avanzados -->
+        <record id="view_pos_order_search_punto_inicio" model="ir.ui.view">
+            <field name="name">pos.order.search.punto_inicio</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_search"/>
+            <field name="arch" type="xml">
+                <!-- Agregar filtros específicos de Punto de Inicio -->
+                <xpath expr="//search/field[@name='config_id']" position="after">
+                    <separator/>
+                    <filter string="Órdenes Punto de Inicio" name="punto_inicio_orders"
+                            domain="[('x_is_punto_inicio', '=', True)]"
+                            help="Mostrar solo órdenes de Punto de Inicio"/>
+                    <filter string="Órdenes POS Normal" name="pos_orders"
+                            domain="[('x_is_punto_inicio', '=', False)]"
+                            help="Mostrar solo órdenes del POS normal"/>
+                    <separator/>
+                    <filter string="Sesiones de PI" name="punto_inicio_sessions"
+                            domain="[('x_session_is_punto_inicio', '=', True)]"
+                            help="Órdenes de sesiones de Punto de Inicio"/>
+                    <filter string="Configs de PI" name="punto_inicio_configs"
+                            domain="[('x_config_is_punto_inicio', '=', True)]"
+                            help="Órdenes de configuraciones de Punto de Inicio"/>
+                    <separator/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Módulo de Origen" name="group_by_source_module"
+                                context="{'group_by': 'x_source_module'}"/>
+                    </group>
+                </xpath>
+
+                <!-- Agregar campos de búsqueda -->
+                <xpath expr="//search/field[@name='name']" position="after">
+                    <field name="x_source_module" string="Módulo de Origen"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Órdenes de Punto de Inicio -->
+        <record id="action_punto_inicio_orders" model="ir.actions.act_window">
+            <field name="name">Órdenes Punto de Inicio</field>
+            <field name="res_model">pos.order</field>
+            <field name="view_mode">tree,form</field>
+            <!-- Dominio: Solo órdenes de Punto de Inicio -->
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <!-- Contexto: Marcar automáticamente y aplicar filtro por defecto -->
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+                'search_default_punto_inicio_orders': 1,
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No hay órdenes de Punto de Inicio todavía
+                </p>
+                <p>
+                    Las órdenes se crean automáticamente desde la interfaz del
+                    Punto de Inicio cuando se realizan ventas.
+                    <br/><br/>
+                    Todas las órdenes creadas desde sesiones de Punto de Inicio
+                    aparecerán aquí automáticamente.
+                </p>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Órdenes Recientes de PI -->
+        <record id="action_punto_inicio_orders_recent" model="ir.actions.act_window">
+            <field name="name">Órdenes Recientes PI</field>
+            <field name="res_model">pos.order</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[
+                ('x_is_punto_inicio', '=', True),
+                ('date_order', '>=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))
+            ]</field>
+            <field name="context">{
+                'search_default_config': 1,
+            }</field>
+        </record>
+
+        <!-- Acción de Ventana para Dashboard/Reportes -->
+        <record id="action_punto_inicio_orders_all" model="ir.actions.act_window">
+            <field name="name">Todas las Órdenes PI</field>
+            <field name="res_model">pos.order</field>
+            <field name="view_mode">tree,form,pivot,graph</field>
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <field name="context">{
+                'search_default_config': 1,
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Análisis de órdenes de Punto de Inicio
+                </p>
+                <p>
+                    Aquí puedes ver todas las órdenes asociadas a configuraciones
+                    de Punto de Inicio, incluyendo vistas de análisis (pivot y gráficos).
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>

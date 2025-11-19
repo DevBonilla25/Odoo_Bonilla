@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for id in \"view_pos_config\" \"view_pos_config_search\" \"view_pos_session_tree\" \"view_pos_session_search\")",
+      "Bash(do echo \"=== Buscando $id ===\")",
+      "Bash(done)",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

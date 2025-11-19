@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        MENÚS PRINCIPALES PARA PUNTO DE INICIO
+        =======================================
+
+        Este archivo define la estructura completa del menú de Punto de Inicio.
+
+        IMPORTANTE - INDEPENDENCIA TOTAL:
+        - Punto de Inicio es completamente independiente del módulo Point of Sale
+        - NO comparte configuraciones, métodos de pago, ni ajustes con POS
+        - Solo comparte la estructura de tablas (pos_config, pos_session, pos_order)
+        - Los datos se separan mediante campos identificadores (x_is_punto_inicio)
+        - Los usuarios de Punto de Inicio SOLO ven datos de Punto de Inicio
+        - Los usuarios de POS SOLO ven datos de POS
+
+        Estructura del menú:
+        - Menú raíz: "Punto de Inicio"
+          |- Dashboard
+          |- Órdenes
+          |  |- Órdenes
+          |  |- Órdenes Recientes
+          |  |- Análisis de Órdenes
+          |- Sesiones
+          |  |- Sesiones
+          |  |- Todas las Sesiones
+          |- Configuración
+          |  |- Puntos de Venta (Configuraciones propias de PI)
+
+        IMPORTANTE:
+        - Cada menú tiene groups="" para controlar acceso
+        - Las acciones usan dominios y contextos para filtrar automáticamente
+        - Los sequence numbers controlan el orden de aparición
+        - Las reglas de seguridad garantizan la separación de datos
+        -->
+
+        <!-- ==================================================== -->
+        <!-- MENÚ RAÍZ: PUNTO DE INICIO -->
+        <!-- ==================================================== -->
+        <menuitem id="menu_punto_inicio_root"
+                  name="Punto de Inicio"
+                  sequence="20"
+                  web_icon="punto_inicio,static/description/icon.png"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- ==================================================== -->
+        <!-- DASHBOARD / VISTA PRINCIPAL -->
+        <!-- ==================================================== -->
+
+        <!--
+        NOTA: La interfaz POS (point_of_sale.ui) es una acción cliente especial
+        que requiere configuración adicional de JavaScript para funcionar correctamente
+        con el filtrado de Punto de Inicio.
+
+        Por ahora, el Dashboard abrirá la vista de sesiones como punto de inicio.
+        Si necesitas una interfaz POS personalizada, deberás:
+        1. Crear componentes JavaScript/OWL personalizados
+        2. Registrar una nueva acción cliente
+        3. Modificar el flujo de carga de datos del POS
+        -->
+
+        <!-- Acción del Dashboard: Muestra configuraciones de Punto de Inicio -->
+        <record id="action_punto_inicio_dashboard" model="ir.actions.act_window">
+            <field name="name">Panel de Punto de Inicio</field>
+            <field name="res_model">pos.config</field>
+            <field name="view_mode">kanban,tree,form</field>
+            <field name="domain">[('x_is_punto_inicio', '=', True)]</field>
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    ¡Bienvenido a Punto de Inicio!
+                </p>
+                <p>
+                    Para comenzar, crea tu primer Punto de Inicio.
+                </p>
+                <p>
+                    <button name="%(action_punto_inicio_new_config)d" type="action" class="btn btn-primary">
+                        Crear Punto Inicio
+                    </button>
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_punto_inicio_dashboard"
+                  name="Dashboard"
+                  parent="menu_punto_inicio_root"
+                  action="action_punto_inicio_dashboard"
+                  sequence="1"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: ÓRDENES -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_punto_inicio_orders_root"
+                  name="Órdenes"
+                  parent="menu_punto_inicio_root"
+                  sequence="10"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- Órdenes de Punto de Inicio -->
+        <menuitem id="menu_punto_inicio_orders"
+                  name="Órdenes"
+                  parent="menu_punto_inicio_orders_root"
+                  action="action_punto_inicio_orders"
+                  sequence="1"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- Órdenes Recientes -->
+        <menuitem id="menu_punto_inicio_orders_recent"
+                  name="Órdenes Recientes"
+                  parent="menu_punto_inicio_orders_root"
+                  action="action_punto_inicio_orders_recent"
+                  sequence="2"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- Todas las Órdenes (con análisis) -->
+        <menuitem id="menu_punto_inicio_orders_all"
+                  name="Análisis de Órdenes"
+                  parent="menu_punto_inicio_orders_root"
+                  action="action_punto_inicio_orders_all"
+                  sequence="3"
+                  groups="group_punto_inicio_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: SESIONES -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_punto_inicio_sessions_root"
+                  name="Sesiones"
+                  parent="menu_punto_inicio_root"
+                  sequence="20"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- Sesiones de Punto de Inicio -->
+        <menuitem id="menu_punto_inicio_sessions"
+                  name="Sesiones"
+                  parent="menu_punto_inicio_sessions_root"
+                  action="action_punto_inicio_session"
+                  sequence="1"
+                  groups="group_punto_inicio_user"/>
+
+        <!-- Todas las Sesiones -->
+        <menuitem id="menu_punto_inicio_sessions_all"
+                  name="Todas las Sesiones"
+                  parent="menu_punto_inicio_sessions_root"
+                  action="action_punto_inicio_session_all"
+                  sequence="2"
+                  groups="group_punto_inicio_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: CONFIGURACIÓN -->
+        <!-- ==================================================== -->
+
+        <menuitem id="menu_punto_inicio_config_root"
+                  name="Configuración"
+                  parent="menu_punto_inicio_root"
+                  sequence="90"
+                  groups="group_punto_inicio_manager"/>
+
+        <!-- Puntos de Inicio (Configuraciones) -->
+        <menuitem id="menu_punto_inicio_config"
+                  name="Puntos de Inicio"
+                  parent="menu_punto_inicio_config_root"
+                  action="action_punto_inicio_config"
+                  sequence="1"
+                  groups="group_punto_inicio_manager"/>
+
+        <!-- ==================================================== -->
+        <!-- SECCIÓN: REPORTES (Opcional - para futuro) -->
+        <!-- ==================================================== -->
+
+        <!--
+        Puedes descomentar esta sección cuando quieras agregar reportes personalizados
+
+        <menuitem id="menu_punto_inicio_reports_root"
+                  name="Reportes"
+                  parent="menu_punto_inicio_root"
+                  sequence="80"
+                  groups="group_punto_inicio_manager"/>
+
+        <menuitem id="menu_punto_inicio_report_sales"
+                  name="Reporte de Ventas"
+                  parent="menu_punto_inicio_reports_root"
+                  action="action_punto_inicio_report_sales"
+                  sequence="1"
+                  groups="group_punto_inicio_manager"/>
+        -->
+
+        <!-- ==================================================== -->
+        <!-- ACCIONES ADICIONALES -->
+        <!-- ==================================================== -->
+
+        <!-- Acción para crear nueva configuración rápidamente desde el Dashboard -->
+        <record id="action_punto_inicio_new_config" model="ir.actions.act_window">
+            <field name="name">Nuevo Punto de Inicio</field>
+            <field name="res_model">pos.config</field>
+            <field name="view_mode">form</field>
+            <field name="target">current</field>
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+            }</field>
+        </record>
+
+        <!-- Acción para crear nueva sesión rápidamente -->
+        <record id="action_punto_inicio_new_session" model="ir.actions.act_window">
+            <field name="name">Nueva Sesión PI</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context">{
+                'default_x_is_punto_inicio': True,
+                'default_x_source_module': 'punto_inicio',
+            }</field>
+        </record>
+
+        <!-- Acción para ver estadísticas rápidas -->
+        <record id="action_punto_inicio_stats" model="ir.actions.server">
+            <field name="name">Estadísticas PI</field>
+            <field name="model_id" ref="point_of_sale.model_pos_order"/>
+            <field name="state">code</field>
+            <field name="code">
+# Este código muestra estadísticas rápidas de Punto de Inicio
+# Puede ser llamado desde un botón en el dashboard
+
+stats = model.get_punto_inicio_stats()
+
+# Mostrar notificación con las estadísticas
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Estadísticas de Punto de Inicio',
+        'message': f"""
+            Total de Órdenes: {stats['total_orders']}
+            Monto Total: ${stats['total_amount']:.2f}
+            Ticket Promedio: ${stats['average_ticket']:.2f}
+        """,
+        'sticky': False,
+        'type': 'info',
+    }
+}
+            </field>
+        </record>
+
+    </data>
+</odoo>
