@@ -162,9 +162,9 @@
                   sequence="90"
                   groups="group_punto_inicio_manager"/>
 
-        <!-- Puntos de Venta (Configuraciones) -->
+        <!-- Puntos de Inicio (Configuraciones) -->
         <menuitem id="menu_punto_inicio_config"
-                  name="Puntos de Venta"
+                  name="Puntos de Inicio"
                   parent="menu_punto_inicio_config_root"
                   action="action_punto_inicio_config"
                   sequence="1"

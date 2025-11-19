@@ -4,26 +4,8 @@
 from odoo import api, fields, models, _
 
 class PosSession(models.Model):
-    """
-    Extensión del modelo pos.session
-    =================================
-
-    Este modelo NO crea una nueva tabla. Usa herencia clásica (_inherit)
-    para agregar campos adicionales a la tabla 'pos_session' existente.
-
-    Campos agregados:
-    -----------------
-    * x_is_punto_inicio: Boolean que indica si esta sesión pertenece a Punto de Inicio
-    * x_source_module: Selection que indica el módulo de origen
-    * x_config_is_punto_inicio: Campo relacionado de la configuración (para filtros)
-
-    Lógica de marcado:
-    ------------------
-    Las sesiones se marcan automáticamente como 'Punto de Inicio' si:
-    1. Se crean desde una acción con el contexto apropiado, O
-    2. Se crean desde una configuración (config_id) que ya está marcada como Punto de Inicio
-    """
-
+    """Extensión del modelo pos.session para Punto de Inicio"""
+    
     _inherit = 'pos.session'
     _description = 'Point of Sale Session - Extended for Punto de Inicio'
 
@@ -57,48 +39,97 @@ class PosSession(models.Model):
         help="Indica si la configuración asociada es de Punto de Inicio",
     )
 
-    @api.model
-    def create(self, vals):
+    # Campos para gestión de vehículo y kilometraje
+    x_vehicle_id = fields.Many2one(
+        'fleet.vehicle',
+        string='Vehículo',
+        help="Vehículo utilizado en esta sesión",
+        domain="[('active', '=', True)]",
+        copy=False,
+    )
+
+    x_odometer_start = fields.Float(
+        string='Kilometraje Inicial',
+        help="Lectura del odómetro al iniciar la sesión",
+        digits=(10, 2),  # Permite hasta 2 decimales
+        copy=False,
+    )
+
+    x_odometer_end = fields.Float(
+        string='Kilometraje Final',
+        help="Lectura del odómetro al finalizar la sesión",
+        digits=(10, 2),
+        copy=False,
+    )
+
+    x_odometer_difference = fields.Float(
+        string='Kilómetros Recorridos',
+        compute='_compute_odometer_difference',
+        store=True,
+        digits=(10, 2),
+        help="Diferencia entre kilometraje final e inicial",
+    )
+
+    x_session_notes = fields.Text(
+        string='Notas de Sesión',
+        help="Observaciones o comentarios sobre la sesión",
+        copy=False,
+    )
+
+    @api.depends('x_odometer_start', 'x_odometer_end')
+    def _compute_odometer_difference(self):
         """
-        Sobrescribimos create para marcar automáticamente las sesiones.
-
-        Estrategia de marcado (en orden de prioridad):
-        -----------------------------------------------
-        1. Si el contexto indica explícitamente 'default_x_is_punto_inicio': True
-           -> Marcamos como Punto de Inicio
-
-        2. Si no hay contexto pero config_id está en vals, verificamos si esa
-           configuración es de Punto de Inicio
-           -> Heredamos el marcado de la configuración
-
-        3. Si config_id ya está establecido en self (al crear desde interfaz)
-           -> También heredamos el marcado
-
-        Esto garantiza que TODAS las sesiones creadas desde configuraciones
-        de Punto de Inicio se marquen correctamente.
+        Calcula los kilómetros recorridos durante la sesión.
         """
-        # Opción 1: Contexto explícito
-        if self.env.context.get('default_x_is_punto_inicio'):
-            vals['x_is_punto_inicio'] = True
-            vals['x_source_module'] = 'punto_inicio'
-        # Opción 2: Herencia de la configuración (config_id en vals)
-        elif 'config_id' in vals:
-            config = self.env['pos.config'].browse(vals['config_id'])
-            if config.x_is_punto_inicio:
+        for session in self:
+            if session.x_odometer_end and session.x_odometer_start:
+                session.x_odometer_difference = session.x_odometer_end - session.x_odometer_start
+            else:
+                session.x_odometer_difference = 0.0
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """
+        Marca automáticamente las sesiones de Punto de Inicio.
+        Si no tiene vehículo/kilometraje, mantiene el estado en 'opening_control' para mostrar el popup.
+        """
+        for vals in vals_list:
+            # Opción 1: Contexto explícito
+            if self.env.context.get('default_x_is_punto_inicio'):
                 vals['x_is_punto_inicio'] = True
                 vals['x_source_module'] = 'punto_inicio'
+            # Opción 2: Herencia de la configuración (config_id en vals)
+            elif 'config_id' in vals:
+                config = self.env['pos.config'].browse(vals['config_id'])
+                if config.x_is_punto_inicio:
+                    vals['x_is_punto_inicio'] = True
+                    vals['x_source_module'] = 'punto_inicio'
 
-        return super(PosSession, self).create(vals)
+                    # Precargar vehículo de la configuración si existe
+                    if config.x_vehicle_id and 'x_vehicle_id' not in vals:
+                        vals['x_vehicle_id'] = config.x_vehicle_id.id
+
+        # Crear las sesiones (el método base llamará automáticamente a action_pos_session_open())
+        sessions = super(PosSession, self).create(vals_list)
+
+        # Después de la creación, verificar sesiones de Punto de Inicio
+        for session in sessions:
+            if session.x_is_punto_inicio:
+                # Si es de Punto de Inicio, cambiar el nombre de la sesión para usar el prefijo PID
+                if session.name.startswith('POS/'):
+                    new_name = self.env['ir.sequence'].next_by_code('pid.session')
+                    if new_name:
+                        session.write({'name': new_name})
+                
+                # SOLUCIÓN SENCILLA: Si no tiene vehículo/kilometraje, forzar estado a 'opening_control'
+                # Esto evita que se abra automáticamente sin pasar por el popup
+                if session.state == 'opened' and not (session.x_vehicle_id and session.x_odometer_start):
+                    session.write({'state': 'opening_control'})
+
+        return sessions
 
     def write(self, vals):
-        """
-        Sobrescribimos write por si se cambia la configuración de una sesión.
-        Si se cambia a una config de Punto de Inicio, actualizamos los campos.
-
-        Nota: En la práctica, cambiar config_id de una sesión existente es poco común,
-        pero cubrimos este caso para robustez.
-        """
-        # Si se está cambiando la configuración
+        """Actualiza los campos si se cambia la configuración de una sesión"""
         if 'config_id' in vals:
             config = self.env['pos.config'].browse(vals['config_id'])
             if config.x_is_punto_inicio:
@@ -109,3 +140,128 @@ class PosSession(models.Model):
                 vals['x_source_module'] = 'pos'
 
         return super(PosSession, self).write(vals)
+
+    def action_open_punto_inicio_session(self):
+        """
+        Abre una sesión de Punto de Inicio mostrando el popup de apertura de caja.
+
+        Este método se llama desde la vista kanban cuando el usuario hace clic
+        en "Abrir Sesión" desde una configuración de Punto de Inicio.
+
+        Retorna:
+            dict: Acción que redirige a la página de apertura de caja
+        """
+        self.ensure_one()
+
+        # Verificar que la sesión sea de Punto de Inicio
+        if not self.x_is_punto_inicio:
+            from odoo.exceptions import UserError
+            raise UserError(_("Esta sesión no pertenece a Punto de Inicio"))
+
+        # Verificar que la sesión no esté ya abierta
+        if self.state != 'new_session':
+            from odoo.exceptions import UserError
+            raise UserError(_("Esta sesión ya está abierta o cerrada"))
+
+        # Redirigir a la página de apertura de caja
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/punto_inicio/cash_opening?session_id={self.id}',
+            'target': 'self',
+        }
+
+    def set_vehicle_opening(self, vehicle_id, odometer_start, notes=''):
+        """
+        Establece el vehículo y kilometraje inicial al abrir la sesión.
+
+        Este método se llama desde el frontend cuando el conductor ingresa
+        los datos del vehículo en el popup de apertura.
+
+        Parámetros:
+            vehicle_id (int): ID del vehículo seleccionado
+            odometer_start (float): Lectura inicial del odómetro
+            notes (str): Notas u observaciones de inicio
+        """
+        self.ensure_one()
+
+        # Validar que se proporcionen los datos requeridos
+        if not vehicle_id:
+            from odoo.exceptions import UserError
+            raise UserError(_("Debe seleccionar un vehículo"))
+
+        if not odometer_start or odometer_start <= 0:
+            from odoo.exceptions import UserError
+            raise UserError(_("Debe ingresar el kilometraje inicial del vehículo"))
+
+        # Actualizar los datos del vehículo
+        self.write({
+            'x_vehicle_id': vehicle_id,
+            'x_odometer_start': odometer_start,
+            'x_session_notes': notes or '',
+        })
+
+        # Registrar en el chatter
+        vehicle = self.env['fleet.vehicle'].browse(vehicle_id)
+        self.message_post(
+            body=_("Inicio de sesión<br/>Vehículo: %s<br/>Kilometraje inicial: %.2f km<br/>Notas: %s") % (
+                vehicle.name, odometer_start, notes or 'N/A'
+            ),
+            subject=_("Inicio de Sesión"),
+        )
+
+        # Cambiar el estado a 'opened'
+        self.action_pos_session_open()
+
+        return True
+
+    def set_vehicle_closing(self, odometer_end, notes=''):
+        """
+        Establece el kilometraje final y notas de cierre.
+
+        Este método se llama desde el frontend cuando el conductor ingresa
+        el kilometraje final en el popup de cierre.
+
+        Parámetros:
+            odometer_end (float): Lectura final del odómetro
+            notes (str): Notas u observaciones de cierre
+        """
+        self.ensure_one()
+
+        # Verificar que la sesión esté abierta
+        if self.state != 'opened':
+            from odoo.exceptions import UserError
+            raise UserError(_("Solo se pueden cerrar sesiones que estén abiertas"))
+
+        # Validar kilometraje final
+        if not odometer_end or odometer_end <= 0:
+            from odoo.exceptions import UserError
+            raise UserError(_("Debe ingresar el kilometraje final del vehículo"))
+
+        if odometer_end < self.x_odometer_start:
+            from odoo.exceptions import UserError
+            raise UserError(_("El kilometraje final no puede ser menor al inicial"))
+
+        # Actualizar el kilometraje final
+        self.write({
+            'x_odometer_end': odometer_end,
+        })
+
+        # Agregar notas si se proporcionan
+        if notes:
+            current_notes = self.x_session_notes or ''
+            self.write({
+                'x_session_notes': current_notes + '\n\n--- Cierre de Sesión ---\n' + notes
+            })
+
+        # Calcular kilómetros recorridos
+        km_recorridos = odometer_end - self.x_odometer_start
+
+        # Registrar en el chatter
+        self.message_post(
+            body=_("Cierre de sesión<br/>Vehículo: %s<br/>Kilometraje final: %.2f km<br/>Kilómetros recorridos: %.2f km<br/>Notas: %s") % (
+                self.x_vehicle_id.name, odometer_end, km_recorridos, notes or 'N/A'
+            ),
+            subject=_("Cierre de Sesión"),
+        )
+
+        return True

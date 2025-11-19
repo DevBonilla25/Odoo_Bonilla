@@ -38,11 +38,15 @@ Uso:
     'website': 'https://www.bonilla.com',
     'depends': [
         'point_of_sale',  # Dependencia crítica - reutilizamos sus modelos
+        'fleet',          # Para integración con gestión de vehículos
     ],
     'data': [
         # Seguridad - debe cargarse primero
         'security/punto_inicio_security.xml',
         'security/ir.model.access.csv',
+
+        # Datos - secuencias y configuraciones
+        'data/punto_inicio_data.xml',
 
         # Vistas - heredan y modifican las vistas del POS
         'views/punto_inicio_config_view.xml',
@@ -50,9 +54,22 @@ Uso:
         'views/punto_inicio_order_view.xml',
         'views/punto_inicio_menu.xml',
 
+        # Assets y templates del frontend
+        'views/punto_inicio_assets.xml',
+        'views/punto_inicio_templates.xml',
+
         # Exclusión de datos PI en Point of Sale - DEBE CARGARSE AL FINAL
         'views/pos_exclusion_view.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'punto_inicio/static/src/app/cash_opening_popup.js',
+            'punto_inicio/static/src/app/punto_inicio_app.js',
+            'punto_inicio/static/src/xml/cash_opening_popup.xml',
+            'punto_inicio/static/src/xml/punto_inicio_app.xml',
+            'punto_inicio/static/src/scss/punto_inicio.scss',
+        ],
+    },
     'demo': [],
     'installable': True,
     'application': True,  # Este módulo aparece como aplicación en el menú de Apps

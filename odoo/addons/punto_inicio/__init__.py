@@ -10,3 +10,4 @@ NO crea nuevas tablas, solo agrega campos a las existentes.
 """
 
 from . import models
+from . import controllers
