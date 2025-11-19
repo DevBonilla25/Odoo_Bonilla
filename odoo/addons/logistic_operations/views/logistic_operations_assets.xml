@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+    ASSETS DE Operaciones Logísticas
+    ==========================
+
+    Los assets se definen en __manifest__.py en la sección 'assets'.
+    Este archivo ya no es necesario en Odoo 17.
+    -->
+</odoo>

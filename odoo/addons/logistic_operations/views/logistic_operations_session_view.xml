@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        VISTAS DE SESIÓN PARA Operaciones Logísticas
+        ======================================
+
+        Este archivo hereda las vistas de pos.session y las adapta para
+        el módulo Operaciones Logísticas.
+        -->
+
+        <!-- Vista de Formulario: Agregar campos de identificación y botón personalizado -->
+        <record id="view_pos_session_form_logistic_operations" model="ir.ui.view">
+            <field name="name">pos.session.form.logistic_operations</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_form"/>
+            <field name="arch" type="xml">
+                <!-- Banner informativo para sesiones de Operaciones Logísticas -->
+                <xpath expr="//h1[@class='oe_title']" position="before">
+                    <div class="alert alert-info" role="alert" invisible="x_is_logistic_operations == False">
+                        <strong><i class="fa fa-flag"/> Sesión de Operaciones Logísticas</strong>
+                        - Esta sesión fue creada desde el módulo Operaciones Logísticas.
+                    </div>
+                </xpath>
+
+                <!-- Agregar campos invisibles y botón de apertura para Operaciones Logísticas -->
+                <xpath expr="//header" position="inside">
+                    <field name="x_is_logistic_operations" invisible="1"/>
+                    <button name="action_open_logistic_operations_session"
+                            string="Abrir Sesión LSO"
+                            type="object"
+                            class="btn-primary"
+                            invisible="x_is_logistic_operations == False or state not in ['new_session', 'opening_control']"/>
+                </xpath>
+
+                <!-- Agregar grupo de vehículo y kilometraje antes de los campos de caja -->
+                <xpath expr="//sheet/group" position="before">
+                    <group string="Información de Vehículo" name="vehicle_info" invisible="x_is_logistic_operations == False">
+                        <group>
+                            <field name="x_vehicle_id" options="{'no_create': True}"/>
+                            <field name="x_odometer_start"/>
+                            <field name="x_odometer_end" readonly="state not in ['opened']"/>
+                        </group>
+                        <group>
+                            <field name="x_odometer_difference" readonly="1"/>
+                            <field name="x_session_notes" placeholder="Ingrese observaciones sobre la sesión, condición del vehículo, etc."/>
+                        </group>
+                    </group>
+                </xpath>
+
+                <!-- Agregar campos de identificación al grupo principal -->
+                <xpath expr="//sheet/group/field[@name='cash_register_balance_end_real']" position="after">
+                    <field name="x_source_module" readonly="1" invisible="x_is_logistic_operations == False"/>
+                    <field name="x_config_is_logistic_operations" readonly="1" string="Config es LSO" invisible="x_is_logistic_operations == False"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Árbol/Lista: Agregar columnas -->
+        <record id="view_pos_session_tree_logistic_operations" model="ir.ui.view">
+            <field name="name">pos.session.tree.logistic_operations</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//tree/field[@name='config_id']" position="after">
+                    <field name="x_source_module" optional="show"/>
+                    <field name="x_vehicle_id" optional="show"/>
+                    <field name="x_odometer_start" optional="hide"/>
+                    <field name="x_odometer_end" optional="hide"/>
+                    <field name="x_odometer_difference" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de Búsqueda: Agregar filtros -->
+        <record id="view_pos_session_search_logistic_operations" model="ir.ui.view">
+            <field name="name">pos.session.search.logistic_operations</field>
+            <field name="model">pos.session</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_session_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <separator/>
+                    <filter string="Sesiones Operaciones Logísticas" name="logistic_operations_sessions"
+                            domain="[('x_is_logistic_operations', '=', True)]"/>
+                    <filter string="Sesiones POS Normal" name="pos_sessions"
+                            domain="[('x_is_logistic_operations', '=', False)]"/>
+                    <separator/>
+                    <filter string="Configs de Operaciones Logísticas" name="logistic_operations_configs"
+                            domain="[('x_config_is_logistic_operations', '=', True)]"/>
+                </xpath>
+                <xpath expr="//search/group" position="inside">
+                    <filter string="Módulo de Origen" name="group_by_source"
+                            context="{'group_by': 'x_source_module'}"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Sesiones de Operaciones Logísticas -->
+        <record id="action_logistic_operations_session" model="ir.actions.act_window">
+            <field name="name">Sesiones Operaciones Logísticas</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">tree,form</field>
+            <!-- Dominio: Solo sesiones de Operaciones Logísticas -->
+            <field name="domain">[('x_is_logistic_operations', '=', True)]</field>
+            <!-- Contexto: Marcar automáticamente como Operaciones Logísticas -->
+            <field name="context">{
+                'default_x_is_logistic_operations': True,
+                'default_x_source_module': 'logistic_operations',
+                'search_default_logistic_operations_sessions': 1,
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Crear una nueva sesión de Operaciones Logísticas
+                </p>
+                <p>
+                    Las sesiones de Operaciones Logísticas funcionan exactamente igual que
+                    las sesiones del POS normal, pero se marcan para identificar su origen.
+                </p>
+            </field>
+        </record>
+
+        <!-- Acción de Ventana para Todas las Sesiones (con filtro aplicado) -->
+        <record id="action_logistic_operations_session_all" model="ir.actions.act_window">
+            <field name="name">Todas las Sesiones LSO</field>
+            <field name="res_model">pos.session</field>
+            <field name="view_mode">tree,form,kanban</field>
+            <field name="domain">[('x_is_logistic_operations', '=', True)]</field>
+            <field name="context">{
+                'search_default_config': 1,
+            }</field>
+        </record>
+
+    </data>
+</odoo>
